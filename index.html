@@ -19,30 +19,17 @@
   <!-- Aplikasi Utama -->
   <div id="appDiv" style="display:none;">
     <button onclick="logout()">Logout</button>
-    
-    <h3>Laporan Keuangan</h3>
-    <p>Total Masuk: <b id="totalMasuk">0</b></p>
-    <p>Total Keluar: <b id="totalKeluar">0</b></p>
-    <p>Saldo Akhir: <b id="saldo">0</b></p>
-
-    <h3>Tambah / Edit Transaksi</h3>
-    <input type="hidden" id="editId">
+    <h3>Tambah Transaksi</h3>
     <input type="text" id="keterangan" placeholder="Keterangan">
     <input type="number" id="jumlah" placeholder="Jumlah">
     <select id="tipe">
       <option value="masuk">Uang Masuk</option>
       <option value="keluar">Uang Keluar</option>
     </select>
-    <button onclick="simpanTransaksi()">Simpan</button>
-    <button onclick="batalEdit()" id="btnBatal" style="display:none;">Batal Edit</button>
+    <button onclick="tambahTransaksi()">Simpan</button>
 
     <h3>Daftar Transaksi</h3>
     <ul id="daftarTransaksi"></ul>
-
-    <h3>Ganti PIN</h3>
-    <input type="password" id="pinBaru" placeholder="PIN Baru">
-    <button onclick="gantiPin()">Update PIN</button>
-    <p id="pinMsg" style="color:green;"></p>
   </div>
 
   <!-- Firebase SDK -->
@@ -66,21 +53,12 @@
     const app = firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    let pinAktif = "";
-
-    // Ambil PIN dari database saat pertama load
-    db.ref("config/pin").once("value").then(snapshot => {
-      if (snapshot.exists()) {
-        pinAktif = snapshot.val();
-      } else {
-        db.ref("config/pin").set("123456");
-        pinAktif = "123456";
-      }
-    });
+    // PIN sederhana
+    const PIN = "123456";
 
     function login() {
       const pin = document.getElementById("pinInput").value;
-      if (pin === pinAktif) {
+      if (pin === PIN) {
         document.getElementById("loginDiv").style.display = "none";
         document.getElementById("appDiv").style.display = "block";
         loadTransaksi();
@@ -95,32 +73,19 @@
       document.getElementById("pinInput").value = "";
     }
 
-    function simpanTransaksi() {
-      const id = document.getElementById("editId").value;
+    function tambahTransaksi() {
       const keterangan = document.getElementById("keterangan").value;
       const jumlah = document.getElementById("jumlah").value;
       const tipe = document.getElementById("tipe").value;
 
       if (keterangan && jumlah) {
-        if (id) {
-          // update transaksi
-          db.ref("transaksi/" + id).update({
-            keterangan: keterangan,
-            jumlah: parseInt(jumlah),
-            tipe: tipe,
-            tanggal: new Date().toLocaleString()
-          });
-          batalEdit();
-        } else {
-          // tambah baru
-          const newRef = db.ref("transaksi").push();
-          newRef.set({
-            keterangan: keterangan,
-            jumlah: parseInt(jumlah),
-            tipe: tipe,
-            tanggal: new Date().toLocaleString()
-          });
-        }
+        const newRef = db.ref("transaksi").push();
+        newRef.set({
+          keterangan: keterangan,
+          jumlah: parseInt(jumlah),
+          tipe: tipe,
+          tanggal: new Date().toLocaleString()
+        });
         document.getElementById("keterangan").value = "";
         document.getElementById("jumlah").value = "";
       }
@@ -130,64 +95,13 @@
       const list = document.getElementById("daftarTransaksi");
       db.ref("transaksi").on("value", snapshot => {
         list.innerHTML = "";
-
-        let totalMasuk = 0;
-        let totalKeluar = 0;
-
         snapshot.forEach(child => {
           const data = child.val();
           const li = document.createElement("li");
-
-          li.innerHTML = `${data.tanggal} - ${data.keterangan} - Rp${data.jumlah} (${data.tipe}) 
-            <button onclick="editTransaksi('${child.key}', '${data.keterangan}', '${data.jumlah}', '${data.tipe}')">✏️</button>
-            <button onclick="hapusTransaksi('${child.key}')">❌</button>`;
-
+          li.innerText = `${data.tanggal} - ${data.keterangan} - Rp${data.jumlah} (${data.tipe})`;
           list.appendChild(li);
-
-          if (data.tipe === "masuk") {
-            totalMasuk += data.jumlah;
-          } else {
-            totalKeluar += data.jumlah;
-          }
         });
-
-        // Update laporan keuangan
-        document.getElementById("totalMasuk").innerText = "Rp" + totalMasuk.toLocaleString();
-        document.getElementById("totalKeluar").innerText = "Rp" + totalKeluar.toLocaleString();
-        document.getElementById("saldo").innerText = "Rp" + (totalMasuk - totalKeluar).toLocaleString();
       });
-    }
-
-    function editTransaksi(id, ket, jumlah, tipe) {
-      document.getElementById("editId").value = id;
-      document.getElementById("keterangan").value = ket;
-      document.getElementById("jumlah").value = jumlah;
-      document.getElementById("tipe").value = tipe;
-      document.getElementById("btnBatal").style.display = "inline";
-    }
-
-    function batalEdit() {
-      document.getElementById("editId").value = "";
-      document.getElementById("keterangan").value = "";
-      document.getElementById("jumlah").value = "";
-      document.getElementById("tipe").value = "masuk";
-      document.getElementById("btnBatal").style.display = "none";
-    }
-
-    function hapusTransaksi(id) {
-      if (confirm("Yakin mau hapus transaksi ini?")) {
-        db.ref("transaksi/" + id).remove();
-      }
-    }
-
-    function gantiPin() {
-      const pinBaru = document.getElementById("pinBaru").value;
-      if (pinBaru) {
-        db.ref("config/pin").set(pinBaru);
-        pinAktif = pinBaru;
-        document.getElementById("pinMsg").innerText = "PIN berhasil diperbarui!";
-        document.getElementById("pinBaru").value = "";
-      }
     }
   </script>
 </body>
