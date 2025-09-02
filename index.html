@@ -4,8 +4,28 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Pembukuan NJR Cell</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js"></script>
+  <style>
+    /* Styling untuk chart dan tabel */
+    #chartContainer {
+      width: 100%;
+      height: 400px;
+      margin-top: 20px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    table, th, td {
+      border: 1px solid #ddd;
+    }
+    th, td {
+      padding: 8px 12px;
+      text-align: left;
+    }
+  </style>
 </head>
 <body>
   <h2>Pembukuan NJR Cell</h2>
@@ -20,13 +40,18 @@
   </select>
   <button onclick="simpanTransaksi()">Simpan</button>
 
+  <!-- Grafik Transaksi -->
+  <div id="chartContainer">
+    <canvas id="transactionChart"></canvas>
+  </div>
+
   <h3>Laporan Keuangan</h3>
   <p>Total Masuk: <b id="totalMasuk">Rp 0</b></p>
   <p>Total Keluar: <b id="totalKeluar">Rp 0</b></p>
   <p>Saldo Akhir: <b id="saldo">Rp 0</b></p>
 
   <h3>Daftar Transaksi</h3>
-  <table border="1" cellpadding="5" cellspacing="0" id="tabelTransaksi">
+  <table id="tabelTransaksi">
     <thead>
       <tr>
         <th>Tanggal</th>
@@ -55,6 +80,8 @@
     const app = firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
+    let transaksiData = [];
+
     // Menyimpan transaksi
     function simpanTransaksi() {
       const keterangan = document.getElementById("keterangan").value;
@@ -77,11 +104,12 @@
       }
     }
 
-    // Menampilkan transaksi di tabel
+    // Menampilkan transaksi di tabel dan mengupdate grafik
     function loadTransaksi() {
       const tbody = document.querySelector("#tabelTransaksi tbody");
       db.ref("transaksi").on("value", snapshot => {
         tbody.innerHTML = "";  // Clear the table body before loading new data
+        transaksiData = [];  // Clear previous data for chart
 
         let totalMasuk = 0;
         let totalKeluar = 0;
@@ -109,12 +137,18 @@
           } else {
             totalKeluar += data.jumlah;
           }
+
+          // Menyimpan data untuk grafik
+          const transactionDate = new Date(data.tanggal).toLocaleDateString();
+          transaksiData.push({ date: transactionDate, amount: data.jumlah, type: data.tipe });
         });
 
         // Update saldo
         document.getElementById("totalMasuk").innerText = "Rp " + totalMasuk.toLocaleString();
         document.getElementById("totalKeluar").innerText = "Rp " + totalKeluar.toLocaleString();
         document.getElementById("saldo").innerText = "Rp " + (totalMasuk - totalKeluar).toLocaleString();
+
+        updateChart();
       });
     }
 
@@ -138,6 +172,53 @@
           tanggal: new Date().toLocaleString()
         });
       };
+    }
+
+    // Update grafik
+    function updateChart() {
+      const dates = [];
+      const masukData = [];
+      const keluarData = [];
+
+      // Organize data for chart
+      transaksiData.forEach(item => {
+        if (!dates.includes(item.date)) {
+          dates.push(item.date);
+          masukData.push(0);
+          keluarData.push(0);
+        }
+        const index = dates.indexOf(item.date);
+        if (item.type === "masuk") {
+          masukData[index] += item.amount;
+        } else {
+          keluarData[index] += item.amount;
+        }
+      });
+
+      // Setup the chart
+      const ctx = document.getElementById("transactionChart").getContext("2d");
+      const chart = new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels: dates,
+          datasets: [{
+            label: 'Uang Masuk',
+            data: masukData,
+            backgroundColor: 'rgba(0, 255, 0, 0.5)',
+          }, {
+            label: 'Uang Keluar',
+            data: keluarData,
+            backgroundColor: 'rgba(255, 0, 0, 0.5)',
+          }]
+        },
+        options: {
+          scales: {
+            y: {
+              beginAtZero: true
+            }
+          }
+        }
+      });
     }
 
     // Load transaksi saat pertama kali
