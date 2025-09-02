@@ -1,198 +1,428 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Pembukuan NJR Cell</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 0;
-      background-color: #f4f4f9;
-    }
-    h1 {
-      text-align: center;
-      margin-top: 20px;
-    }
-    .container {
-      max-width: 1200px;
-      margin: 20px auto;
-      padding: 20px;
-      background-color: white;
-      border-radius: 8px;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 20px;
-    }
-    table, th, td {
-      border: 1px solid #ddd;
-    }
-    th, td {
-      padding: 12px;
-      text-align: left;
-    }
-    .form-group {
-      margin-bottom: 10px;
-    }
-    .form-group input, .form-group select {
-      width: 100%;
-      padding: 8px;
-      margin: 5px 0;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-    }
-    button {
-      background-color: #28a745;
-      color: white;
-      padding: 10px 15px;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-    button:hover {
-      background-color: #218838;
-    }
-  </style>
-</head>
-<body>
-
-  <h1>Pembukuan NJR Cell</h1>
-
-  <div class="container">
-    <div class="form-group">
-      <label for="keterangan">Keterangan Transaksi:</label>
-      <input type="text" id="keterangan" placeholder="Keterangan transaksi (misal: Penjualan Pulsa)">
-    </div>
-
-    <div class="form-group">
-      <label for="jumlah">Jumlah:</label>
-      <input type="number" id="jumlah" placeholder="Jumlah uang (Rp)">
-    </div>
-
-    <div class="form-group">
-      <label for="tipe">Tipe Transaksi:</label>
-      <select id="tipe">
-        <option value="masuk">Uang Masuk</option>
-        <option value="keluar">Uang Keluar</option>
-      </select>
-    </div>
-
-    <button onclick="simpanTransaksi()">Simpan Transaksi</button>
-
-    <h2>Daftar Transaksi</h2>
-    <table id="transaksiTable">
-      <thead>
-        <tr>
-          <th>Tanggal</th>
-          <th>Keterangan</th>
-          <th>Jumlah</th>
-          <th>Tipe</th>
-          <th>Aksi</th>
-        </tr>
-      </thead>
-      <tbody>
-        <!-- Daftar transaksi akan dimuat di sini -->
-      </tbody>
-    </table>
-
-    <h3>Saldo</h3>
-    <p>Total Uang Masuk: <span id="totalMasuk">Rp 0</span></p>
-    <p>Total Uang Keluar: <span id="totalKeluar">Rp 0</span></p>
-    <p>Saldo Akhir: <span id="saldo">Rp 0</span></p>
-  </div>
-
-  <script>
-    // Fungsi untuk menyimpan transaksi
-    function simpanTransaksi() {
-      const keterangan = document.getElementById("keterangan").value;
-      const jumlah = parseFloat(document.getElementById("jumlah").value);
-      const tipe = document.getElementById("tipe").value;
-
-      if (keterangan === "" || isNaN(jumlah) || jumlah <= 0) {
-        alert("Pastikan semua input terisi dengan benar.");
-        return;
-      }
-
-      const transaksi = {
-        keterangan: keterangan,
-        jumlah: jumlah,
-        tipe: tipe,
-        tanggal: new Date().toLocaleString()
-      };
-
-      // Ambil data transaksi dari localStorage
-      let transaksiData = JSON.parse(localStorage.getItem("transaksi")) || [];
-
-      // Tambah transaksi baru
-      transaksiData.push(transaksi);
-
-      // Simpan kembali ke localStorage
-      localStorage.setItem("transaksi", JSON.stringify(transaksiData));
-
-      // Clear input fields
-      document.getElementById("keterangan").value = "";
-      document.getElementById("jumlah").value = "";
-
-      // Tampilkan data terbaru di tabel dan hitung saldo
-      loadTransaksi();
-    }
-
-    // Fungsi untuk memuat daftar transaksi
-    function loadTransaksi() {
-      const transaksiTable = document.getElementById("transaksiTable").getElementsByTagName('tbody')[0];
-      const transaksiData = JSON.parse(localStorage.getItem("transaksi")) || [];
-
-      // Clear tabel
-      transaksiTable.innerHTML = "";
-
-      let totalMasuk = 0;
-      let totalKeluar = 0;
-
-      // Loop untuk setiap transaksi
-      transaksiData.forEach((transaksi, index) => {
-        const row = transaksiTable.insertRow();
-        row.insertCell(0).textContent = transaksi.tanggal;
-        row.insertCell(1).textContent = transaksi.keterangan;
-        row.insertCell(2).textContent = "Rp " + transaksi.jumlah.toLocaleString();
-        row.insertCell(3).textContent = transaksi.tipe === "masuk" ? "Uang Masuk" : "Uang Keluar";
-        
-        // Tombol untuk hapus transaksi
-        const deleteButton = document.createElement("button");
-        deleteButton.textContent = "Hapus";
-        deleteButton.onclick = function() {
-          hapusTransaksi(index);
-        };
-        row.insertCell(4).appendChild(deleteButton);
-
-        // Hitung total uang masuk dan keluar
-        if (transaksi.tipe === "masuk") {
-          totalMasuk += transaksi.jumlah;
-        } else {
-          totalKeluar += transaksi.jumlah;
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aplikasi Pembukuan & Grafik Saldo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            color: #333;
         }
-      });
+        .container {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background-color: #ffffff;
+            border-radius: 1rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        .input-group label {
+            font-weight: 500;
+            color: #4b5563;
+        }
+        .input-group input, .input-group select {
+            border: 1px solid #d1d5db;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            transition: border-color 0.2s;
+            background-color: #f9fafb;
+        }
+        .input-group input:focus, .input-group select:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
+        }
+        .button-primary {
+            background-color: #3b82f6;
+            color: #ffffff;
+            font-weight: 600;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+        .button-primary:hover {
+            background-color: #2563eb;
+            transform: translateY(-2px);
+        }
+        .button-primary:active {
+            transform: translateY(0);
+        }
+        .balance-card, .receivable-card, .net-position-card {
+            padding: 1.5rem;
+            border-radius: 1rem;
+            text-align: center;
+            font-weight: 600;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+        .balance-card {
+            background-color: #eff6ff;
+            color: #1e40af;
+        }
+        .receivable-card {
+            background-color: #fef3c7;
+            color: #b45309;
+        }
+        .net-position-card {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+        #chart-container {
+            width: 100%;
+            height: 300px;
+            background-color: #f9fafb;
+            border-radius: 0.75rem;
+            padding: 1rem;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+        }
+        .bar {
+            background-color: #3b82f6;
+            border-radius: 0.25rem;
+            transition: height 0.5s ease-out;
+            margin: 0 2px;
+            min-height: 2px; /* Ensure bar is visible even with zero value */
+        }
+        .bar-label {
+            font-size: 0.75rem;
+            color: #6b7280;
+            margin-top: 0.25rem;
+        }
+        #history-list {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.75rem;
+        }
+        .history-item {
+            padding: 1rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .history-item:last-child {
+            border-bottom: none;
+        }
+        .net-positive {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+        .net-negative {
+            background-color: #fee2e2;
+            color: #991b1b;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen p-4">
 
-      // Update saldo
-      const saldo = totalMasuk - totalKeluar;
-      document.getElementById("totalMasuk").textContent = "Rp " + totalMasuk.toLocaleString();
-      document.getElementById("totalKeluar").textContent = "Rp " + totalKeluar.toLocaleString();
-      document.getElementById("saldo").textContent = "Rp " + saldo.toLocaleString();
-    }
+    <div class="container mx-auto">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-gray-800">Pembukuan Saldo & Grafik Saldo</h1>
+            <p class="text-lg text-gray-500 mt-2">Catat transaksi dan lihat perbandingan saldo harian</p>
+        </header>
+        
+        <!-- Saldo, Piutang, & Posisi Bersih Summary -->
+        <div class="grid md:grid-cols-3 gap-4 mb-8">
+            <div class="balance-card">
+                <p class="text-sm">Saldo Saat Ini</p>
+                <p class="text-3xl mt-1 font-bold" id="current-balance">Rp 0</p>
+            </div>
+            <div class="receivable-card">
+                <p class="text-sm">Sisa Piutang</p>
+                <p class="text-3xl mt-1 font-bold" id="current-receivable">Rp 0</p>
+            </div>
+            <div class="net-position-card">
+                <p class="text-sm">Posisi Bersih</p>
+                <p class="text-3xl mt-1 font-bold" id="net-position">Rp 0</p>
+            </div>
+        </div>
+        
+        <!-- Input Form Saldo -->
+        <div class="bg-white p-6 rounded-xl shadow-lg mb-8">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-4">Tambah Saldo Harian</h2>
+            <form id="balance-form" class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="input-group flex flex-col">
+                        <label for="date-input" class="mb-1 text-sm">Tanggal</label>
+                        <input type="date" id="date-input" class="w-full" required>
+                    </div>
+                     <div class="input-group flex flex-col">
+                        <label for="category-select" class="mb-1 text-sm">Kategori</label>
+                        <select id="category-select" class="w-full" required>
+                            <option value="PROPANA CIHERANG">PROPANA CIHERANG</option>
+                            <option value="DANA CIHERANG">DANA CIHERANG</option>
+                            <option value="AGEN MANDIRI">AGEN MANDIRI</option>
+                            <option value="DIGIPOST / TELKOMSEL CIHERANG">DIGIPOST / TELKOMSEL CIHERANG</option>
+                            <option value="DOMPUL / XL CIHERANG">DOMPUL / XL CIHERANG</option>
+                            <option value="MOBO INDOSAT CIHERANG">MOBO INDOSAT CIHERANG</option>
+                            <option value="THREE CIHERANG">THREE CIHERANG</option>
+                            <option value="PINJAMAN">PINJAMAN</option>
+                            <option value="DANA UTAMA">DANA UTAMA</option>
+                            <option value="SEABANK">SEABANK</option>
+                            <option value="BRI">BRI</option>
+                            <option value="AMARTHAFIN">AMARTHAFIN</option>
+                            <option value="PROPANA UTAMA">PROPANA UTAMA</option>
+                            <option value="MANDIRI">MANDIRI</option>
+                            <option value="MITRA SHOPEE">MITRA SHOPEE</option>
+                            <option value="QR NATZME">QR NATZME</option>
+                            <option value="CASH DIBAWA">CASH DIBAWA</option>
+                            <option value="CASH TOKO CIHERANG">CASH TOKO CIHERANG</option>
+                            <option value="CASH BRANGKAS">CASH BRANGKAS</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="input-group flex flex-col">
+                    <label for="amount-input" class="mb-1 text-sm">Jumlah Saldo (Rp)</label>
+                    <input type="text" id="amount-input" placeholder="Contoh: 50.000" class="w-full" required>
+                </div>
+                <button type="submit" class="button-primary w-full">Tambah Saldo</button>
+            </form>
+        </div>
 
-    // Fungsi untuk menghapus transaksi
-    function hapusTransaksi(index) {
-      const transaksiData = JSON.parse(localStorage.getItem("transaksi"));
-      transaksiData.splice(index, 1);
-      localStorage.setItem("transaksi", JSON.stringify(transaksiData));
-      loadTransaksi(); // Muat ulang daftar transaksi
-    }
+        <!-- Input Form Piutang -->
+        <div class="bg-white p-6 rounded-xl shadow-lg mb-8">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-4">Perbarui Piutang</h2>
+            <form id="receivable-form" class="space-y-4">
+                <div class="input-group flex flex-col">
+                    <label for="receivable-input" class="mb-1 text-sm">Sisa Piutang (Rp)</label>
+                    <input type="text" id="receivable-input" placeholder="Masukkan total sisa piutang Anda" class="w-full" required>
+                </div>
+                <button type="submit" class="button-primary w-full">Perbarui Piutang</button>
+            </form>
+        </div>
 
-    // Muat transaksi saat pertama kali buka aplikasi
-    loadTransaksi();
-  </script>
+        <!-- Sales Graph -->
+        <div class="bg-white p-6 rounded-xl shadow-lg mb-8">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-4">Grafik Saldo Harian</h2>
+            <div id="chart-container">
+                <!-- Chart bars will be rendered here -->
+            </div>
+        </div>
+
+        <!-- Transaction History with Date Filter -->
+        <div class="bg-white p-6 rounded-xl shadow-lg">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-4">Riwayat Transaksi</h2>
+            
+            <div class="input-group flex flex-col mb-4">
+                <label for="filter-date-input" class="mb-1 text-sm">Filter Tanggal</label>
+                <input type="date" id="filter-date-input" class="w-full">
+            </div>
+
+            <ul id="history-list" class="divide-y divide-gray-200">
+                <!-- Transaction history items will be rendered here -->
+            </ul>
+        </div>
+    </div>
+    
+    <script>
+        // DOM Elements
+        const balanceForm = document.getElementById('balance-form');
+        const receivableForm = document.getElementById('receivable-form');
+        const dateInput = document.getElementById('date-input');
+        const categorySelect = document.getElementById('category-select');
+        const amountInput = document.getElementById('amount-input');
+        const receivableInput = document.getElementById('receivable-input');
+        const currentBalanceEl = document.getElementById('current-balance');
+        const currentReceivableEl = document.getElementById('current-receivable');
+        const netPositionEl = document.getElementById('net-position');
+        const historyList = document.getElementById('history-list');
+        const chartContainer = document.getElementById('chart-container');
+        const filterDateInput = document.getElementById('filter-date-input');
+
+        // State variables
+        let transactions = JSON.parse(localStorage.getItem('transactions')) || [];
+        let currentReceivable = parseInt(localStorage.getItem('currentReceivable')) || 0;
+        const dailyBalanceData = {};
+
+        // Set today's date as default
+        dateInput.valueAsDate = new Date();
+        receivableInput.value = new Intl.NumberFormat('id-ID').format(currentReceivable);
+
+        // --- Functions ---
+        
+        // Function to format number with thousand separators
+        function formatNumber(value) {
+            const cleaned = value.replace(/\D/g, '');
+            if (cleaned === '') return '';
+            const number = parseInt(cleaned, 10);
+            return new Intl.NumberFormat('id-ID').format(number);
+        }
+        
+        // Event listeners for number formatting
+        amountInput.addEventListener('input', (e) => {
+            e.target.value = formatNumber(e.target.value);
+        });
+        receivableInput.addEventListener('input', (e) => {
+            e.target.value = formatNumber(e.target.value);
+        });
+        
+        // Function to render transactions and update the UI
+        function renderUI() {
+            historyList.innerHTML = '';
+            let finalBalance = 0;
+            
+            // Clear previous daily balance data for graph
+            for (const key in dailyBalanceData) {
+                delete dailyBalanceData[key];
+            }
+
+            // Loop through transactions to populate history and calculate daily totals
+            transactions.forEach(transaction => {
+                const date = transaction.date;
+                if (!dailyBalanceData[date]) {
+                    dailyBalanceData[date] = 0;
+                }
+                dailyBalanceData[date] += transaction.amount;
+            });
+
+            // Get the latest date to display total balance for the most recent day
+            const latestDate = transactions.length > 0 ? transactions[0].date : null;
+            finalBalance = latestDate ? dailyBalanceData[latestDate] : 0;
+            
+            // Get filtered transactions based on the selected date
+            const filterDate = filterDateInput.value;
+            const filteredTransactions = filterDate 
+                ? transactions.filter(t => t.date === filterDate) 
+                : transactions;
+
+            // Render filtered transactions
+            if (filteredTransactions.length === 0) {
+                 historyList.innerHTML = `<p class="text-center text-gray-500 py-4">Tidak ada transaksi pada tanggal ini.</p>`;
+            } else {
+                 filteredTransactions.forEach(transaction => {
+                    const listItem = document.createElement('li');
+                    listItem.className = `history-item flex justify-between items-center bg-gray-50 rounded-lg p-3 my-2`;
+                    
+                    const formattedAmount = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(transaction.amount);
+                    
+                    const deleteButton = document.createElement('button');
+                    deleteButton.textContent = 'Hapus';
+                    deleteButton.className = 'text-red-500 hover:text-red-700 text-sm font-medium transition-colors';
+                    deleteButton.onclick = (e) => {
+                        e.stopPropagation();
+                        deleteTransaction(transaction.id);
+                    };
+
+                    listItem.innerHTML = `
+                        <div class="flex-grow">
+                            <p class="text-sm text-gray-500">${new Date(transaction.date).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                            <p class="font-medium text-gray-800">Saldo ${transaction.category}</p>
+                            <p class="text-xs text-gray-400 mt-1">Saldo: ${formattedAmount}</p>
+                        </div>
+                        <div class="flex-shrink-0 text-right flex flex-col items-end">
+                            <p class="text-lg font-bold">${formattedAmount}</p>
+                        </div>
+                    `;
+                    listItem.querySelector('.text-right').appendChild(deleteButton);
+                    historyList.appendChild(listItem);
+                });
+            }
+
+            // Update summary cards with the final values
+            currentBalanceEl.textContent = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(finalBalance);
+            currentReceivableEl.textContent = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(currentReceivable);
+            currentReceivableEl.style.color = '#b45309';
+
+            // Calculate and display net position
+            const netPosition = finalBalance - currentReceivable;
+            netPositionEl.textContent = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(netPosition);
+            
+            // Change color of net position card based on value
+            const netPositionCard = document.querySelector('.net-position-card');
+            if (netPosition >= 0) {
+                netPositionCard.classList.remove('net-negative');
+                netPositionCard.classList.add('net-positive');
+            } else {
+                netPositionCard.classList.remove('net-positive');
+                netPositionCard.classList.add('net-negative');
+            }
+
+            // Save transactions and piutang to local storage
+            localStorage.setItem('transactions', JSON.stringify(transactions));
+            localStorage.setItem('currentReceivable', currentReceivable);
+            
+            // Render the chart
+            renderChart();
+        }
+
+        // Function to render the bar chart
+        function renderChart() {
+            chartContainer.innerHTML = '';
+            
+            const dates = Object.keys(dailyBalanceData).sort((a, b) => new Date(a) - new Date(b));
+            const maxBalance = Math.max(...Object.values(dailyBalanceData), 0);
+
+            if (dates.length === 0) {
+                chartContainer.innerHTML = `<p class="text-gray-500 text-center">Belum ada data saldo.</p>`;
+                return;
+            }
+
+            dates.forEach(date => {
+                const balance = dailyBalanceData[date];
+                const heightPercentage = maxBalance > 0 ? (balance / maxBalance) * 100 : 0;
+                
+                const barWrapper = document.createElement('div');
+                barWrapper.className = 'flex flex-col items-center justify-end h-full';
+                barWrapper.style.flex = '1';
+
+                const bar = document.createElement('div');
+                bar.className = 'bar w-8';
+                bar.style.height = `${heightPercentage}%`;
+
+                const label = document.createElement('div');
+                label.className = 'bar-label text-center';
+                label.textContent = new Date(date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' });
+                
+                barWrapper.appendChild(bar);
+                barWrapper.appendChild(label);
+                chartContainer.appendChild(barWrapper);
+            });
+        }
+        
+        // Function to handle balance form submission
+        balanceForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const rawAmount = parseInt(amountInput.value.replace(/\D/g, ''), 10) || 0;
+            
+            const newTransaction = {
+                id: Date.now(),
+                date: dateInput.value,
+                category: categorySelect.value, 
+                amount: rawAmount,
+            };
+            
+            transactions.push(newTransaction);
+            transactions.sort((a, b) => new Date(b.date) - new Date(a.date));
+            
+            renderUI();
+            balanceForm.reset();
+            dateInput.valueAsDate = new Date();
+        });
+        
+        // Function to handle receivable form submission
+        receivableForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const rawReceivable = parseInt(receivableInput.value.replace(/\D/g, ''), 10) || 0;
+            currentReceivable = rawReceivable;
+            renderUI();
+        });
+
+        // Function to delete a transaction
+        function deleteTransaction(id) {
+            transactions = transactions.filter(t => t.id !== id);
+            renderUI();
+        }
+
+        // Event listener for the date filter input
+        filterDateInput.addEventListener('change', renderUI);
+        
+        // Initial render
+        renderUI();
+    </script>
+
 </body>
 </html>
