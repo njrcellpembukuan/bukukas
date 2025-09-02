@@ -1,168 +1,194 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>NJR Cell – Buku Kas (Login Aman)</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.18.0/tabler-icons.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <style>
-    .card { @apply bg-white rounded-2xl shadow-sm border border-slate-200; }
-    .btn { @apply inline-flex items-center gap-2 rounded-xl px-4 py-2 border bg-white hover:bg-slate-50 active:scale-[.99]; }
-    .btn-primary { @apply bg-slate-900 text-white hover:bg-black border-slate-900; }
-    .btn-danger { @apply bg-red-600 text-white border-red-600 hover:bg-red-700; }
-    .input { @apply w-full rounded-xl border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-400; }
-    .select { @apply w-full rounded-xl border border-slate-300 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-slate-400; }
-    .label { @apply block text-sm font-medium text-slate-700 mb-1; }
-    .kbd { @apply px-1.5 py-0.5 rounded border bg-slate-50 text-slate-700 text-[11px]; }
-  </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pembukuan NJR Cell</title>
 </head>
-<body class="bg-slate-100 text-slate-900 min-h-screen">
-  <!-- Login Screen -->
-  <div id="loginScreen" class="card p-6 max-w-sm w-full mx-auto mt-32">
-    <h1 class="text-xl font-bold mb-4 text-center">🔐 Login Buku Kas</h1>
-    <p class="text-sm text-slate-600 mb-3 text-center">Masukkan PIN untuk mengakses pembukuan NJR Cell</p>
-    <input id="pinInput" type="password" maxlength="6" placeholder="PIN 6 digit" class="w-full rounded-xl border border-slate-300 px-3 py-2 mb-4 text-center tracking-widest" />
-    <button id="loginBtn" class="btn btn-primary w-full">Masuk</button>
-    <p id="loginError" class="text-red-600 text-sm text-center mt-3 hidden">PIN salah, coba lagi.</p>
+<body>
+  <h2>Pembukuan NJR Cell</h2>
+
+  <!-- Form Login -->
+  <div id="loginDiv">
+    <h3>Login</h3>
+    <input type="password" id="pinInput" placeholder="Masukkan PIN">
+    <button onclick="login()">Login</button>
+    <p id="loginMsg" style="color:red;"></p>
   </div>
 
-  <!-- App Content (hidden until login) -->
-  <div id="app" class="hidden">
-    <div class="max-w-7xl mx-auto p-4 md:p-6 lg:p-8 space-y-6">
-      <header class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div class="space-y-1">
-          <h1 class="text-2xl md:text-3xl font-bold">📒 Buku Kas – <span class="text-slate-700">NJR Cell</span></h1>
-          <p class="text-slate-600">Catat pemasukan & pengeluaran harian. Data tersimpan <span class="font-semibold">lokal di browser</span>. Ekspor untuk backup.</p>
-        </div>
-        <div class="flex flex-wrap items-center gap-2">
-          <button id="exportJsonBtn" class="btn"><i class="ti ti-download"></i> Ekspor JSON</button>
-          <button id="exportCsvBtn" class="btn"><i class="ti ti-table"></i> Ekspor CSV</button>
-          <label class="btn cursor-pointer">
-            <i class="ti ti-upload"></i> Impor JSON
-            <input id="importJsonInput" type="file" accept="application/json" class="hidden" />
-          </label>
-          <button id="clearAllBtn" class="btn btn-danger"><i class="ti ti-trash"></i> Hapus Semua</button>
-          <button id="logoutBtn" class="btn"><i class="ti ti-logout"></i> Logout</button>
-        </div>
-      </header>
+  <!-- Aplikasi Utama -->
+  <div id="appDiv" style="display:none;">
+    <button onclick="logout()">Logout</button>
+    
+    <h3>Laporan Keuangan</h3>
+    <p>Total Masuk: <b id="totalMasuk">0</b></p>
+    <p>Total Keluar: <b id="totalKeluar">0</b></p>
+    <p>Saldo Akhir: <b id="saldo">0</b></p>
 
-      <section class="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div class="card p-4"><div class="text-sm text-slate-500">Saldo</div><div id="saldo" class="text-2xl font-bold mt-1">Rp 0</div></div>
-        <div class="card p-4"><div class="text-sm text-slate-500">Total Masuk</div><div id="totalMasuk" class="text-2xl font-bold mt-1">Rp 0</div></div>
-        <div class="card p-4"><div class="text-sm text-slate-500">Total Keluar</div><div id="totalKeluar" class="text-2xl font-bold mt-1">Rp 0</div></div>
-        <div class="card p-4"><div class="text-sm text-slate-500">Profit</div><div id="profit" class="text-2xl font-bold mt-1">Rp 0</div></div>
-      </section>
+    <h3>Tambah / Edit Transaksi</h3>
+    <input type="hidden" id="editId">
+    <input type="text" id="keterangan" placeholder="Keterangan">
+    <input type="number" id="jumlah" placeholder="Jumlah">
+    <select id="tipe">
+      <option value="masuk">Uang Masuk</option>
+      <option value="keluar">Uang Keluar</option>
+    </select>
+    <button onclick="simpanTransaksi()">Simpan</button>
+    <button onclick="batalEdit()" id="btnBatal" style="display:none;">Batal Edit</button>
 
-      <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div class="card p-4 lg:col-span-1">
-          <h2 class="text-lg font-semibold mb-3">Tambah Transaksi</h2>
-          <form id="txForm" class="space-y-3">
-            <div><label class="label">Tanggal</label><input id="tanggal" type="date" class="input" required /></div>
-            <div class="grid grid-cols-2 gap-3">
-              <div><label class="label">Jenis</label><select id="jenis" class="select"><option value="masuk">Masuk</option><option value="keluar">Keluar</option></select></div>
-              <div><label class="label">Metode</label><select id="metode" class="select"><option>Tunai</option><option>Transfer</option><option>EDC</option><option>E-Wallet</option></select></div>
-            </div>
-            <div><label class="label">Kategori</label><select id="kategori" class="select"><option>Penjualan</option><option>Tarik Tunai</option><option>Setor Tunai</option><option>Biaya EDC</option><option>Pembelian</option><option>Operasional</option><option>Lainnya</option></select></div>
-            <div><label class="label">Deskripsi</label><input id="deskripsi" type="text" class="input" /></div>
-            <div><label class="label">Nominal (Rp)</label><input id="nominal" type="number" class="input" min="0" step="100" required /></div>
-            <div class="flex items-center gap-2 text-xs text-slate-600"><span class="kbd">Ctrl</span> + <span class="kbd">Enter</span> simpan cepat</div>
-            <div class="flex items-center gap-2"><button class="btn btn-primary" type="submit"><i class="ti ti-plus"></i> Tambah</button><button id="resetFormBtn" class="btn" type="button"><i class="ti ti-refresh"></i> Reset</button></div>
-          </form>
-        </div>
-        <div class="card p-4 lg:col-span-2"><h2 class="text-lg font-semibold mb-2">Grafik Arus Kas Harian</h2><canvas id="cashflowChart" height="120"></canvas></div>
-      </section>
+    <h3>Daftar Transaksi</h3>
+    <ul id="daftarTransaksi"></ul>
 
-      <section class="card p-4">
-        <div class="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
-          <div><label class="label">Dari</label><input id="filterFrom" type="date" class="input" /></div>
-          <div><label class="label">Sampai</label><input id="filterTo" type="date" class="input" /></div>
-          <div><label class="label">Kategori</label><select id="filterKategori" class="select"><option value="">Semua</option><option>Penjualan</option><option>Tarik Tunai</option><option>Setor Tunai</option><option>Biaya EDC</option><option>Pembelian</option><option>Operasional</option><option>Lainnya</option></select></div>
-          <div><label class="label">Metode</label><select id="filterMetode" class="select"><option value="">Semua</option><option>Tunai</option><option>Transfer</option><option>EDC</option><option>E-Wallet</option></select></div>
-          <div><label class="label">Cari</label><input id="filterSearch" type="text" class="input" /></div>
-        </div>
-      </section>
-
-      <section class="card p-2">
-        <div class="overflow-x-auto"><table class="min-w-full text-sm"><thead class="bg-slate-50 text-slate-700"><tr><th class="text-left font-semibold p-3">Tanggal</th><th class="text-left font-semibold p-3">Jenis</th><th class="text-left font-semibold p-3">Kategori</th><th class="text-left font-semibold p-3">Metode</th><th class="text-left font-semibold p-3">Deskripsi</th><th class="text-right font-semibold p-3">Nominal</th><th class="text-right font-semibold p-3">Aksi</th></tr></thead><tbody id="txTbody" class="divide-y"></tbody></table></div>
-        <div class="flex items-center justify-between p-3 text-xs text-slate-600"><div id="itemCount">0 transaksi</div><div>📌 Data disimpan di localStorage</div></div>
-      </section>
-
-      <footer class="text-center text-xs text-slate-500 py-4">Dibuat untuk NJR Cell • Simpel, cepat, gratis ✨</footer>
-    </div>
+    <h3>Ganti PIN</h3>
+    <input type="password" id="pinBaru" placeholder="PIN Baru">
+    <button onclick="gantiPin()">Update PIN</button>
+    <p id="pinMsg" style="color:green;"></p>
   </div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js"></script>
 
   <script>
-    const APP_PIN = "123456";
-    const loginScreen = document.getElementById('loginScreen');
-    const app = document.getElementById('app');
-    const pinInput = document.getElementById('pinInput');
-    const loginBtn = document.getElementById('loginBtn');
-    const loginError = document.getElementById('loginError');
-    const logoutBtn = document.getElementById('logoutBtn');
+    // Config dari Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyDMezcLUszEwSnLkqQP4V7C0W8z0xb_7w0",
+      authDomain: "njrcell88.firebaseapp.com",
+      databaseURL: "https://njrcell88-default-rtdb.firebaseio.com",
+      projectId: "njrcell88",
+      storageBucket: "njrcell88.appspot.com",
+      messagingSenderId: "857569863322",
+      appId: "1:857569863322:web:83159377d6971A50a26123",
+      measurementId: "G-NLNMK39QDN"
+    };
 
-    function doLogin() {
-      if (pinInput.value.trim() === APP_PIN) {
-        loginScreen.classList.add('hidden');
-        app.classList.remove('hidden');
-        localStorage.setItem('bukukas_loggedin','true');
-      } else loginError.classList.remove('hidden');
-    }
-    loginBtn.onclick = doLogin;
-    pinInput.addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
-    if(localStorage.getItem('bukukas_loggedin')==='true'){loginScreen.classList.add('hidden');app.classList.remove('hidden');}
-    logoutBtn.onclick=()=>{localStorage.removeItem('bukukas_loggedin');location.reload();};
+    // Inisialisasi Firebase
+    const app = firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
 
-    // ====== Pembukuan Script (sama seperti versi sebelumnya) ======
-    const STORAGE_KEY='njr_cell_bukukas_v1';
-    const fmtIDR=new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0});
-    const el=id=>document.getElementById(id);
-    const loadData=()=>{try{const raw=localStorage.getItem(STORAGE_KEY);return raw?JSON.parse(raw):[]}catch(e){return[]}};
-    const saveData=arr=>localStorage.setItem(STORAGE_KEY,JSON.stringify(arr));
-    const uid=()=>Math.random().toString(36).slice(2,10);
-    const sanitizeNumber=n=>Number(n||0);
-    let data=loadData();
-    let chart;
+    let pinAktif = "";
 
-    function render(){
-      const from=el('filterFrom').value?new Date(el('filterFrom').value):null;
-      const to=el('filterTo').value?new Date(el('filterTo').value):null;
-      const kat=el('filterKategori').value;
-      const met=el('filterMetode').value;
-      const q=el('filterSearch').value.trim().toLowerCase();
-      let rows=[...data];
-      rows.sort((a,b)=>a.tanggal.localeCompare(b.tanggal));
-      if(from)rows=rows.filter(r=>new Date(r.tanggal)>=from);
-      if(to)rows=rows.filter(r=>new Date(r.tanggal)<=to);
-      if(kat)rows=rows.filter(r=>r.kategori===kat);
-      if(met)rows=rows.filter(r=>r.metode===met);
-      if(q)rows=rows.filter(r=>(r.deskripsi||'').toLowerCase().includes(q)||String(r.nominal).includes(q));
-      el('txTbody').innerHTML=rows.map(r=>`<tr><td class='p-3'>${r.tanggal}</td><td class='p-3'>${r.jenis}</td><td class='p-3'>${r.kategori}</td><td class='p-3'>${r.metode}</td><td class='p-3'>${r.deskripsi||'-'}</td><td class='p-3 text-right'>${fmtIDR.format(r.nominal)}</td><td class='p-3 text-right'><button onclick=\"editTx('${r.id}')\">Edit</button><button onclick=\"delTx('${r.id}')\">Hapus</button></td></tr>`).join('');
-      el('itemCount').textContent=`${rows.length} transaksi`;
-      const totalMasuk=rows.filter(r=>r.jenis==='masuk').reduce((s,r)=>s+sanitizeNumber(r.nominal),0);
-      const totalKeluar=rows.filter(r=>r.jenis==='keluar').reduce((s,r)=>s+sanitizeNumber(r.nominal),0);
-      const saldo=totalMasuk-totalKeluar;
-      el('totalMasuk').textContent=fmtIDR.format(totalMasuk);
-      el('totalKeluar').textContent=fmtIDR.format(totalKeluar);
-      el('saldo').textContent=fmtIDR.format(saldo);
-      el('profit').textContent=fmtIDR.format(saldo);
-      const byDay={};
-      rows.forEach(r=>{byDay[r.tanggal]??=0;byDay[r.tanggal]+=(r.jenis==='masuk'?1:-1)*sanitizeNumber(r.nominal);});
-      const labels=Object.keys(byDay).sort();
-      const values=labels.map(k=>byDay[k]);
-      if(chart)chart.destroy();
-      chart=new Chart(el('cashflowChart'),{type:'bar',data:{labels,datasets:[{label:'Netto Harian (Rp)',data:values}]},options:{responsive:true,plugins:{legend:{display:false}}}});
+    // Ambil PIN dari database saat pertama load
+    db.ref("config/pin").once("value").then(snapshot => {
+      if (snapshot.exists()) {
+        pinAktif = snapshot.val();
+      } else {
+        db.ref("config/pin").set("123456");
+        pinAktif = "123456";
+      }
+    });
+
+    function login() {
+      const pin = document.getElementById("pinInput").value;
+      if (pin === pinAktif) {
+        document.getElementById("loginDiv").style.display = "none";
+        document.getElementById("appDiv").style.display = "block";
+        loadTransaksi();
+      } else {
+        document.getElementById("loginMsg").innerText = "PIN salah!";
+      }
     }
 
-    function addTx(tx){data.push(tx);saveData(data);render();}
-    function updateTx(id,partial){const i=data.findIndex(r=>r.id===id);if(i!==-1){data[i]={...data[i],...partial};saveData(data);render();}}
-    function delTx(id){if(confirm('Hapus transaksi?')){data=data.filter(r=>r.id!==id);saveData(data);render();}}
-    function editTx(id){const r=data.find(x=>x.id===id);if(!r)return;el('tanggal').value=r.tanggal;el('jenis').value=r.jenis;el('kategori').value=r.kategori;el('metode').value=r.metode;el('deskripsi').value=r.deskripsi||'';el('nominal').value=r.nominal;el('txForm').dataset.editing=id;window.scrollTo({top:0,behavior:'smooth'});}
-    window.editTx=editTx;window.delTx=delTx;
+    function logout() {
+      document.getElementById("loginDiv").style.display = "block";
+      document.getElementById("appDiv").style.display = "none";
+      document.getElementById("pinInput").value = "";
+    }
 
-    el('txForm').addEventListener('submit',e=>{e.preventDefault();const tx={id:el('txForm').dataset.editing||uid(),tanggal:el('tanggal').value||new Date().toISOString().slice(0,10),jenis:el('jenis').value,kategori:el('kategori').value,metode:el('metode').value,deskripsi:el('deskripsi').value.trim(),nominal:sanitizeNumber(el('nominal').value)};if(!tx.nominal)return alert('Nominal harus diisi');if(el('txForm').dataset.editing){updateTx(tx.id,tx);delete el('txForm').dataset.editing;}else addTx(tx);e.target.reset();});
-    document.addEventListener('keydown',e=>{if(e.ctrlKey&&e.key==='Enter'){el('txForm').requestSubmit();}});
-    el('resetFormBtn').onclick=()=>{el('txForm').reset();delete el('txForm').dataset.editing;};
-    ['filterFrom','filterTo','filterKategori','filterMetode','filterSearch'].forEach(id=>el(id).addEventListener('input',render));
-    el('exportJsonBtn').onclick=()=>{const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob
+    function simpanTransaksi() {
+      const id = document.getElementById("editId").value;
+      const keterangan = document.getElementById("keterangan").value;
+      const jumlah = document.getElementById("jumlah").value;
+      const tipe = document.getElementById("tipe").value;
+
+      if (keterangan && jumlah) {
+        if (id) {
+          // update transaksi
+          db.ref("transaksi/" + id).update({
+            keterangan: keterangan,
+            jumlah: parseInt(jumlah),
+            tipe: tipe,
+            tanggal: new Date().toLocaleString()
+          });
+          batalEdit();
+        } else {
+          // tambah baru
+          const newRef = db.ref("transaksi").push();
+          newRef.set({
+            keterangan: keterangan,
+            jumlah: parseInt(jumlah),
+            tipe: tipe,
+            tanggal: new Date().toLocaleString()
+          });
+        }
+        document.getElementById("keterangan").value = "";
+        document.getElementById("jumlah").value = "";
+      }
+    }
+
+    function loadTransaksi() {
+      const list = document.getElementById("daftarTransaksi");
+      db.ref("transaksi").on("value", snapshot => {
+        list.innerHTML = "";
+
+        let totalMasuk = 0;
+        let totalKeluar = 0;
+
+        snapshot.forEach(child => {
+          const data = child.val();
+          const li = document.createElement("li");
+
+          li.innerHTML = `${data.tanggal} - ${data.keterangan} - Rp${data.jumlah} (${data.tipe}) 
+            <button onclick="editTransaksi('${child.key}', '${data.keterangan}', '${data.jumlah}', '${data.tipe}')">✏️</button>
+            <button onclick="hapusTransaksi('${child.key}')">❌</button>`;
+
+          list.appendChild(li);
+
+          if (data.tipe === "masuk") {
+            totalMasuk += data.jumlah;
+          } else {
+            totalKeluar += data.jumlah;
+          }
+        });
+
+        // Update laporan keuangan
+        document.getElementById("totalMasuk").innerText = "Rp" + totalMasuk.toLocaleString();
+        document.getElementById("totalKeluar").innerText = "Rp" + totalKeluar.toLocaleString();
+        document.getElementById("saldo").innerText = "Rp" + (totalMasuk - totalKeluar).toLocaleString();
+      });
+    }
+
+    function editTransaksi(id, ket, jumlah, tipe) {
+      document.getElementById("editId").value = id;
+      document.getElementById("keterangan").value = ket;
+      document.getElementById("jumlah").value = jumlah;
+      document.getElementById("tipe").value = tipe;
+      document.getElementById("btnBatal").style.display = "inline";
+    }
+
+    function batalEdit() {
+      document.getElementById("editId").value = "";
+      document.getElementById("keterangan").value = "";
+      document.getElementById("jumlah").value = "";
+      document.getElementById("tipe").value = "masuk";
+      document.getElementById("btnBatal").style.display = "none";
+    }
+
+    function hapusTransaksi(id) {
+      if (confirm("Yakin mau hapus transaksi ini?")) {
+        db.ref("transaksi/" + id).remove();
+      }
+    }
+
+    function gantiPin() {
+      const pinBaru = document.getElementById("pinBaru").value;
+      if (pinBaru) {
+        db.ref("config/pin").set(pinBaru);
+        pinAktif = pinBaru;
+        document.getElementById("pinMsg").innerText = "PIN berhasil diperbarui!";
+        document.getElementById("pinBaru").value = "";
+      }
+    }
+  </script>
+</body>
+</html>
