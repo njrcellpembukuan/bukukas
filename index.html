@@ -4,224 +4,194 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Pembukuan NJR Cell</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js"></script>
   <style>
-    /* Styling untuk chart dan tabel */
-    #chartContainer {
-      width: 100%;
-      height: 400px;
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f4f4f9;
+    }
+    h1 {
+      text-align: center;
       margin-top: 20px;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 20px auto;
+      padding: 20px;
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
     }
     table {
       width: 100%;
       border-collapse: collapse;
+      margin-top: 20px;
     }
     table, th, td {
       border: 1px solid #ddd;
     }
     th, td {
-      padding: 8px 12px;
+      padding: 12px;
       text-align: left;
+    }
+    .form-group {
+      margin-bottom: 10px;
+    }
+    .form-group input, .form-group select {
+      width: 100%;
+      padding: 8px;
+      margin: 5px 0;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    button {
+      background-color: #28a745;
+      color: white;
+      padding: 10px 15px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #218838;
     }
   </style>
 </head>
 <body>
-  <h2>Pembukuan NJR Cell</h2>
 
-  <!-- Form Input Transaksi -->
-  <h3>Tambah Transaksi</h3>
-  <input type="text" id="keterangan" placeholder="Keterangan">
-  <input type="number" id="jumlah" placeholder="Jumlah" min="1">
-  <select id="tipe">
-    <option value="masuk">Uang Masuk</option>
-    <option value="keluar">Uang Keluar</option>
-  </select>
-  <button onclick="simpanTransaksi()">Simpan</button>
+  <h1>Pembukuan NJR Cell</h1>
 
-  <!-- Grafik Transaksi -->
-  <div id="chartContainer">
-    <canvas id="transactionChart"></canvas>
+  <div class="container">
+    <div class="form-group">
+      <label for="keterangan">Keterangan Transaksi:</label>
+      <input type="text" id="keterangan" placeholder="Keterangan transaksi (misal: Penjualan Pulsa)">
+    </div>
+
+    <div class="form-group">
+      <label for="jumlah">Jumlah:</label>
+      <input type="number" id="jumlah" placeholder="Jumlah uang (Rp)">
+    </div>
+
+    <div class="form-group">
+      <label for="tipe">Tipe Transaksi:</label>
+      <select id="tipe">
+        <option value="masuk">Uang Masuk</option>
+        <option value="keluar">Uang Keluar</option>
+      </select>
+    </div>
+
+    <button onclick="simpanTransaksi()">Simpan Transaksi</button>
+
+    <h2>Daftar Transaksi</h2>
+    <table id="transaksiTable">
+      <thead>
+        <tr>
+          <th>Tanggal</th>
+          <th>Keterangan</th>
+          <th>Jumlah</th>
+          <th>Tipe</th>
+          <th>Aksi</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Daftar transaksi akan dimuat di sini -->
+      </tbody>
+    </table>
+
+    <h3>Saldo</h3>
+    <p>Total Uang Masuk: <span id="totalMasuk">Rp 0</span></p>
+    <p>Total Uang Keluar: <span id="totalKeluar">Rp 0</span></p>
+    <p>Saldo Akhir: <span id="saldo">Rp 0</span></p>
   </div>
 
-  <h3>Laporan Keuangan</h3>
-  <p>Total Masuk: <b id="totalMasuk">Rp 0</b></p>
-  <p>Total Keluar: <b id="totalKeluar">Rp 0</b></p>
-  <p>Saldo Akhir: <b id="saldo">Rp 0</b></p>
-
-  <h3>Daftar Transaksi</h3>
-  <table id="tabelTransaksi">
-    <thead>
-      <tr>
-        <th>Tanggal</th>
-        <th>Keterangan</th>
-        <th>Jumlah</th>
-        <th>Tipe</th>
-        <th>Aksi</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-
   <script>
-    // Konfigurasi Firebase
-    const firebaseConfig = {
-      apiKey: "YOUR_API_KEY",
-      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-      databaseURL: "https://YOUR_PROJECT_ID.firebaseio.com",
-      projectId: "YOUR_PROJECT_ID",
-      storageBucket: "YOUR_PROJECT_ID.appspot.com",
-      messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-      appId: "YOUR_APP_ID"
-    };
-
-    // Inisialisasi Firebase
-    const app = firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
-
-    let transaksiData = [];
-
-    // Menyimpan transaksi
+    // Fungsi untuk menyimpan transaksi
     function simpanTransaksi() {
       const keterangan = document.getElementById("keterangan").value;
-      const jumlah = parseInt(document.getElementById("jumlah").value);
+      const jumlah = parseFloat(document.getElementById("jumlah").value);
       const tipe = document.getElementById("tipe").value;
 
-      if (keterangan && jumlah) {
-        const newRef = db.ref("transaksi").push();
-        newRef.set({
-          keterangan: keterangan,
-          jumlah: jumlah,
-          tipe: tipe,
-          tanggal: new Date().toLocaleString()
-        });
-
-        // Clear input fields after saving
-        document.getElementById("keterangan").value = "";
-        document.getElementById("jumlah").value = "";
-        loadTransaksi();  // Reload transaksi setelah simpan
+      if (keterangan === "" || isNaN(jumlah) || jumlah <= 0) {
+        alert("Pastikan semua input terisi dengan benar.");
+        return;
       }
-    }
 
-    // Menampilkan transaksi di tabel dan mengupdate grafik
-    function loadTransaksi() {
-      const tbody = document.querySelector("#tabelTransaksi tbody");
-      db.ref("transaksi").on("value", snapshot => {
-        tbody.innerHTML = "";  // Clear the table body before loading new data
-        transaksiData = [];  // Clear previous data for chart
-
-        let totalMasuk = 0;
-        let totalKeluar = 0;
-
-        snapshot.forEach(child => {
-          const data = child.val();
-          const row = document.createElement("tr");
-
-          row.innerHTML = `
-            <td>${data.tanggal}</td>
-            <td>${data.keterangan}</td>
-            <td>Rp ${data.jumlah.toLocaleString()}</td>
-            <td>${data.tipe}</td>
-            <td>
-              <button onclick="editTransaksi('${child.key}', '${data.keterangan}', ${data.jumlah}, '${data.tipe}')">✏️</button>
-              <button onclick="hapusTransaksi('${child.key}')">❌</button>
-            </td>
-          `;
-
-          tbody.appendChild(row);
-
-          // Menghitung total
-          if (data.tipe === "masuk") {
-            totalMasuk += data.jumlah;
-          } else {
-            totalKeluar += data.jumlah;
-          }
-
-          // Menyimpan data untuk grafik
-          const transactionDate = new Date(data.tanggal).toLocaleDateString();
-          transaksiData.push({ date: transactionDate, amount: data.jumlah, type: data.tipe });
-        });
-
-        // Update saldo
-        document.getElementById("totalMasuk").innerText = "Rp " + totalMasuk.toLocaleString();
-        document.getElementById("totalKeluar").innerText = "Rp " + totalKeluar.toLocaleString();
-        document.getElementById("saldo").innerText = "Rp " + (totalMasuk - totalKeluar).toLocaleString();
-
-        updateChart();
-      });
-    }
-
-    // Menghapus transaksi
-    function hapusTransaksi(id) {
-      if (confirm("Yakin mau hapus transaksi ini?")) {
-        db.ref("transaksi/" + id).remove();
-      }
-    }
-
-    // Mengedit transaksi
-    function editTransaksi(id, keterangan, jumlah, tipe) {
-      document.getElementById("keterangan").value = keterangan;
-      document.getElementById("jumlah").value = jumlah;
-      document.getElementById("tipe").value = tipe;
-      document.getElementById("simpanTransaksi").onclick = function() {
-        db.ref("transaksi/" + id).update({
-          keterangan: document.getElementById("keterangan").value,
-          jumlah: parseInt(document.getElementById("jumlah").value),
-          tipe: document.getElementById("tipe").value,
-          tanggal: new Date().toLocaleString()
-        });
+      const transaksi = {
+        keterangan: keterangan,
+        jumlah: jumlah,
+        tipe: tipe,
+        tanggal: new Date().toLocaleString()
       };
+
+      // Ambil data transaksi dari localStorage
+      let transaksiData = JSON.parse(localStorage.getItem("transaksi")) || [];
+
+      // Tambah transaksi baru
+      transaksiData.push(transaksi);
+
+      // Simpan kembali ke localStorage
+      localStorage.setItem("transaksi", JSON.stringify(transaksiData));
+
+      // Clear input fields
+      document.getElementById("keterangan").value = "";
+      document.getElementById("jumlah").value = "";
+
+      // Tampilkan data terbaru di tabel dan hitung saldo
+      loadTransaksi();
     }
 
-    // Update grafik
-    function updateChart() {
-      const dates = [];
-      const masukData = [];
-      const keluarData = [];
+    // Fungsi untuk memuat daftar transaksi
+    function loadTransaksi() {
+      const transaksiTable = document.getElementById("transaksiTable").getElementsByTagName('tbody')[0];
+      const transaksiData = JSON.parse(localStorage.getItem("transaksi")) || [];
 
-      // Organize data for chart
-      transaksiData.forEach(item => {
-        if (!dates.includes(item.date)) {
-          dates.push(item.date);
-          masukData.push(0);
-          keluarData.push(0);
-        }
-        const index = dates.indexOf(item.date);
-        if (item.type === "masuk") {
-          masukData[index] += item.amount;
+      // Clear tabel
+      transaksiTable.innerHTML = "";
+
+      let totalMasuk = 0;
+      let totalKeluar = 0;
+
+      // Loop untuk setiap transaksi
+      transaksiData.forEach((transaksi, index) => {
+        const row = transaksiTable.insertRow();
+        row.insertCell(0).textContent = transaksi.tanggal;
+        row.insertCell(1).textContent = transaksi.keterangan;
+        row.insertCell(2).textContent = "Rp " + transaksi.jumlah.toLocaleString();
+        row.insertCell(3).textContent = transaksi.tipe === "masuk" ? "Uang Masuk" : "Uang Keluar";
+        
+        // Tombol untuk hapus transaksi
+        const deleteButton = document.createElement("button");
+        deleteButton.textContent = "Hapus";
+        deleteButton.onclick = function() {
+          hapusTransaksi(index);
+        };
+        row.insertCell(4).appendChild(deleteButton);
+
+        // Hitung total uang masuk dan keluar
+        if (transaksi.tipe === "masuk") {
+          totalMasuk += transaksi.jumlah;
         } else {
-          keluarData[index] += item.amount;
+          totalKeluar += transaksi.jumlah;
         }
       });
 
-      // Setup the chart
-      const ctx = document.getElementById("transactionChart").getContext("2d");
-      const chart = new Chart(ctx, {
-        type: "bar",
-        data: {
-          labels: dates,
-          datasets: [{
-            label: 'Uang Masuk',
-            data: masukData,
-            backgroundColor: 'rgba(0, 255, 0, 0.5)',
-          }, {
-            label: 'Uang Keluar',
-            data: keluarData,
-            backgroundColor: 'rgba(255, 0, 0, 0.5)',
-          }]
-        },
-        options: {
-          scales: {
-            y: {
-              beginAtZero: true
-            }
-          }
-        }
-      });
+      // Update saldo
+      const saldo = totalMasuk - totalKeluar;
+      document.getElementById("totalMasuk").textContent = "Rp " + totalMasuk.toLocaleString();
+      document.getElementById("totalKeluar").textContent = "Rp " + totalKeluar.toLocaleString();
+      document.getElementById("saldo").textContent = "Rp " + saldo.toLocaleString();
     }
 
-    // Load transaksi saat pertama kali
+    // Fungsi untuk menghapus transaksi
+    function hapusTransaksi(index) {
+      const transaksiData = JSON.parse(localStorage.getItem("transaksi"));
+      transaksiData.splice(index, 1);
+      localStorage.setItem("transaksi", JSON.stringify(transaksiData));
+      loadTransaksi(); // Muat ulang daftar transaksi
+    }
+
+    // Muat transaksi saat pertama kali buka aplikasi
     loadTransaksi();
   </script>
 </body>
